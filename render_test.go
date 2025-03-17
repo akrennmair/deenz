@@ -2,6 +2,7 @@ package deenz_test
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
@@ -68,7 +69,7 @@ func TestRenderError(t *testing.T) {
 
 	handler := deenz.Render(tmpl, func(w http.ResponseWriter, r *http.Request) *Params {
 		w.WriteHeader(http.StatusInternalServerError)
-		deenz.Error(errors.New("test error"))
+		deenz.HandleError(errors.New("test error"))
 		return &Params{Name: "world"}
 	})
 
@@ -84,6 +85,28 @@ func TestRenderError(t *testing.T) {
 	if expected, got := `test error`, w.Body.String(); expected != got {
 		t.Fatalf("Got wrong render result. Expected %q, got %q instead.", expected, got)
 	}
+}
+
+func TestRenderErrorThatIsWrongType(t *testing.T) {
+	tmpl := template.Must(template.New("").Parse(`{{ if .Error }}{{ .Error }}{{ else }}Hello, {{ .Values.Name }}!{{ end }}`))
+
+	defer func() {
+		if err := recover(); err == nil {
+			t.Fatalf("Expected to recover something, got %v instead", err)
+		} else if expected, got := "string", fmt.Sprintf("%T", err); expected != got {
+			t.Fatalf("Types don't match. Expected %q, got %q instead.", expected, got)
+		}
+	}()
+
+	handler := deenz.Render(tmpl, func(w http.ResponseWriter, r *http.Request) *Params {
+		w.WriteHeader(http.StatusInternalServerError)
+		panic("not an actual error")
+	})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/", nil)
+
+	handler.ServeHTTP(w, r)
 }
 
 func TestRenderMust(t *testing.T) {

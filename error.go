@@ -1,12 +1,24 @@
 package deenz
 
-func Error(err error) {
-	panic(err)
+func HandleError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Must[T any](values *T, err error) *T {
 	if err != nil {
-		Error(err)
+		HandleError(err)
 	}
 	return values
+}
+
+func CatchError(f func(err error)) {
+	if err := recover(); err != nil {
+		if e, ok := err.(error); ok {
+			f(e)
+		} else {
+			panic(err)
+		}
+	}
 }

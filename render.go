@@ -23,6 +23,8 @@ func Render[T any](tmpl *template.Template, f func(http.ResponseWriter, *http.Re
 			if err := recover(); err != nil {
 				if e, ok := err.(error); ok {
 					params.Error = e.Error()
+				} else {
+					panic(err)
 				}
 			}
 
